@@ -8,9 +8,17 @@ type Book = { _id: string; title: string; author: string; description: string; p
 type Comment = { _id: string; content: string; user?: { name: string } };
 type Request = { _id: string; title: string; author: string; message: string; status: string; user?: { name: string } };
 
+const PRODUCTION_API_URL =
+  "https://bookstore-backend-g0f7bzbvargjedc7.australiaeast-01.azurewebsites.net/api";
+
 const apiBaseUrl =
   import.meta.env.VITE_API_URL ||
-  (import.meta.env.DEV ? "http://localhost:5000/api" : "/api");
+  (import.meta.env.DEV ? "http://localhost:5000/api" : PRODUCTION_API_URL);
+
+function ensureArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? value : [];
+}
+
 const api = axios.create({ baseURL: apiBaseUrl });
 
 const App = () => {
@@ -31,16 +39,22 @@ const App = () => {
 
   const headers = useMemo(() => ({ headers: { Authorization: `Bearer ${token}` } }), [token]);
 
-  const fetchBooks = async () => setBooks((await api.get<Book[]>("/books")).data);
+  const fetchBooks = async () => {
+    const { data } = await api.get<Book[]>("/books");
+    setBooks(ensureArray<Book>(data));
+  };
   const fetchComments = async (bookId: string) => {
-    const response = await api.get<Comment[]>(`/books/${bookId}/comments`);
-    setComments((prev) => ({ ...prev, [bookId]: response.data }));
+    const { data } = await api.get<Comment[]>(`/books/${bookId}/comments`);
+    setComments((prev) => ({ ...prev, [bookId]: ensureArray<Comment>(data) }));
   };
   const fetchAdminData = async () => {
     if (!currentUser || currentUser.role !== "admin") return;
-    const [requestRes, userRes] = await Promise.all([api.get<Request[]>("/requests", headers), api.get<User[]>("/users", headers)]);
-    setRequests(requestRes.data);
-    setMembers(userRes.data);
+    const [requestRes, userRes] = await Promise.all([
+      api.get<Request[]>("/requests", headers),
+      api.get<User[]>("/users", headers),
+    ]);
+    setRequests(ensureArray<Request>(requestRes.data));
+    setMembers(ensureArray<User>(userRes.data));
   };
 
   useEffect(() => {
