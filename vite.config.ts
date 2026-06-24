@@ -10,7 +10,6 @@ export default defineConfig({
       "/api": {
         target: "https://bookstore-backend-g0f7bzbvargjedc7.australiaeast-01.azurewebsites.net",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ""),
       },
     },
   },
