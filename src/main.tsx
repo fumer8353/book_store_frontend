@@ -1,19 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import ReactDOM from "react-dom/client";
 import axios from "axios";
+import { apiBaseUrl } from "./config";
 import "./style.css";
 
 type User = { id: string; name: string; email: string; role: "admin" | "user"; membershipActive: boolean };
 type Book = { _id: string; title: string; author: string; description: string; price: number; rentPrice: number; stock: number };
 type Comment = { _id: string; content: string; user?: { name: string } };
 type Request = { _id: string; title: string; author: string; message: string; status: string; user?: { name: string } };
-
-const PRODUCTION_API_URL =
-  "https://bookstore-backend-g0f7bzbvargjedc7.australiaeast-01.azurewebsites.net/api";
-
-const apiBaseUrl =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.DEV ? "http://localhost:5000/api" : PRODUCTION_API_URL);
 
 function ensureArray<T>(value: unknown): T[] {
   return Array.isArray(value) ? value : [];
@@ -32,6 +26,7 @@ const App = () => {
   const [requests, setRequests] = useState<Request[]>([]);
   const [members, setMembers] = useState<User[]>([]);
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error">("success");
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [authForm, setAuthForm] = useState({ name: "", email: "", password: "" });
   const [bookForm, setBookForm] = useState({ title: "", author: "", description: "", price: 0, rentPrice: 0, stock: 0 });
@@ -66,6 +61,12 @@ const App = () => {
   }, [currentUser, token]);
 
   const handleAuth = async () => {
+    if (authMode === "register" && (!authForm.name.trim() || !authForm.email.trim() || !authForm.password)) {
+      setMessageType("error");
+      setMessage("Name, email, and password are required");
+      return;
+    }
+
     try {
       const endpoint = authMode === "login" ? "/auth/login" : "/auth/register";
       const payload = authMode === "login" ? { email: authForm.email, password: authForm.password } : authForm;
@@ -74,9 +75,12 @@ const App = () => {
       setCurrentUser(data.user);
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
+      setMessageType("success");
       setMessage("Authenticated");
-    } catch {
-      setMessage("Authentication failed");
+    } catch (error) {
+      const apiMessage = axios.isAxiosError(error) ? error.response?.data?.message : undefined;
+      setMessageType("error");
+      setMessage(apiMessage || "Authentication failed");
     }
   };
 
@@ -96,7 +100,7 @@ const App = () => {
   return (
     <main className="container">
       <h1>Bookstore Application</h1>
-      {message && <p className="message">{message}</p>}
+      {message && <p className={`message ${messageType}`}>{message}</p>}
 
       {!currentUser && (
         <section className="card">

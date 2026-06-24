@@ -6,11 +6,5 @@ export default defineConfig({
   server: {
     port: 5174,
     host: true,
-    proxy: {
-      "/api": {
-        target: "https://bookstore-backend-g0f7bzbvargjedc7.australiaeast-01.azurewebsites.net",
-        changeOrigin: true,
-      },
-    },
   },
 });
